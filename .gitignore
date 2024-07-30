@@ -163,3 +163,4 @@ cython_debug/
 
 #Exclude isic dataset
 isic_2024_data/
+.vscode/launch.json

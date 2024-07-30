@@ -3,6 +3,24 @@ import torch.nn.functional as F
 import os
 import numpy as np
 import json
+import pandas as pd
+from typing import Union
+
+def get_metadata_row(df: pd.DataFrame, isic_id: str) -> Union[dict, None]:
+    """Get metadata row by isic_id and return it as a dictionary where keys are column headers and values the row contents.
+
+    Args:
+        df (pd.DataFrame): Dataframe containing metadata.
+        isic_id (str): Datapoint identifier.
+
+    Returns:
+        Union[dict, None]: Dictionary containing the row or None in case an empty row is found.
+    """    
+    row = df.loc[df["isic_id"] == isic_id]
+    if not row.empty:
+        return row.iloc[0].to_dict()
+    else:
+        return None
 
 def tensor2img(img_tensor):
     img = img_tensor.permute(1,2,0)
