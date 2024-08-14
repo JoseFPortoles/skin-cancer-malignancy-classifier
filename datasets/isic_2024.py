@@ -16,7 +16,6 @@ def extract_image(hdf5_data: h5py.Dataset) -> np.array:
 
     Args:
         hdf5_data (h5py.Dataset): Scalar dataset from an hdf5 file
-
     Returns:
         np.array: Array of shape (H,W,3), dtype=np.uint8 and values 0 to 255
     """    
@@ -50,8 +49,9 @@ class ISIC2024Dataset(Dataset):
         if self.transform:
             aug = self.transform(image=img)
             img = aug.to(torch.float32)
-        annot = get_metadata_row(self.annot_df, self.hdf5_keys[index])
-        return img, annot
+        metadata = get_metadata_row(self.annot_df, self.hdf5_keys[index])
+        grading = torch.Tensor(metadata['target'])
+        return img, grading
         
     def __len__(self):
         return len(self.hdf5_keys)

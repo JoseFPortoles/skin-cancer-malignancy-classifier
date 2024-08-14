@@ -5,6 +5,7 @@ import numpy as np
 import json
 import pandas as pd
 from typing import Union
+    
 
 def get_metadata_row(df: pd.DataFrame, isic_id: str) -> Union[dict, None]:
     """Get metadata row by isic_id and return it as a dictionary where keys are column headers and values the row contents.
