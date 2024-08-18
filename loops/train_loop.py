@@ -1,6 +1,5 @@
 from models.skin_cancer_classifier import SkinCancerClassifier
-from models.helpers import init_weights, freeze_encoder
-from datasets.helpers import get_file_paths, save_json_filelist
+from models.helpers import init_weights
 from datasets.isic_2024 import ISIC2024Dataset
 from transforms.transforms import transform_ham10k, val_transform
 import torch
@@ -9,13 +8,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-import torchvision
-from torchmetrics import JaccardIndex
-from sklearn.model_selection import train_test_split
 import os
-from pathlib import Path
 from tqdm import tqdm
-import json
 import datetime
 from typing import Union
 
@@ -58,7 +52,7 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
 
-    criterion = nn.BCEWithLogitsLoss().to(device)
+    criterion = nn.BCELoss().to(device)
 
     if scc_weights_path is None:
         model.eval()
