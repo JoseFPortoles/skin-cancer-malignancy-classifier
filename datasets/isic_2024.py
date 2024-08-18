@@ -8,6 +8,7 @@ import io
 from datasets.helpers import get_metadata_row
 import pandas
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn.functional as F
 
 ISIC_2024_ROOT = "isic_2024_data"
 
@@ -51,6 +52,7 @@ class ISIC2024Dataset(Dataset):
             img = aug.to(torch.float32)
         metadata = get_metadata_row(self.annot_df, self.hdf5_keys[index])
         grading = torch.Tensor(metadata['target'])
+        grading = F.one_hot(grading, num_classes=2)
         return img, grading
         
     def __len__(self):
