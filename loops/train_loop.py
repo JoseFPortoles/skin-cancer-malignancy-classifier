@@ -1,7 +1,7 @@
 from models.skin_cancer_classifier import SkinCancerClassifier
 from models.helpers import init_weights
 from datasets.isic_2024 import ISIC2024Dataset
-from transforms.transforms import transform_ham10k, val_transform
+from transforms.transforms import transform_isic_2024, val_transform
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -47,8 +47,8 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
             print("Specified weights path does not exist, model was xavier initialised")
     
 
-    train_dataset = ISIC2024Dataset(data_root, transform=transform_ham10k(input_size), mode='train', writer=writer)
-    val_dataset = ISIC2024Dataset(data_root, transform=transform_ham10k(input_size), mode='test',writer=writer)
+    train_dataset = ISIC2024Dataset(data_root, transform=transform_isic_2024(input_size), mode='train', writer=writer)
+    val_dataset = ISIC2024Dataset(data_root, transform=val_transform(input_size), mode='test',writer=writer)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
 

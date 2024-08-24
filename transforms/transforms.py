@@ -12,21 +12,9 @@ def reshape_img_size(img_size):
     else:
         raise TypeError(f"Expected argument img_size is tuple(int,int) or int. A {type(img_size)} was passed instead")
 
-def transform(img_size):
+def transform_isic_2024(img_size):
     img_size = reshape_img_size(img_size)    
     return A.Compose([
-        RandomCrop(*img_size, p=0.5),
-        A.HorizontalFlip(p=0.5),
-        Rotate(limit=15, crop_border=True),
-        A.Resize(*img_size),
-        Normalize(),
-        ToTensorV2()
-    ])
-
-def transform_ham10k(img_size):
-    img_size = reshape_img_size(img_size)    
-    return A.Compose([
-        RandomCrop(*img_size, p=0.5),
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         Rotate(limit=15, crop_border=True),
