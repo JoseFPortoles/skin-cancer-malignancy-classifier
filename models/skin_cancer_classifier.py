@@ -13,6 +13,6 @@ class SkinCancerClassifier(nn.Module):
         self.resnet.fc = nn.Linear(2048, 2, True).apply(init_weights)
 
     def forward(self, x):
-        mask = self.unet(x).expand(3, -1, -1)
+        mask = self.unet(x).expand(-1, 3, -1, -1)
         x = x * mask
-        return self.resnet(x)
+        return nn.Softmax(dim=1)(self.resnet(x))
