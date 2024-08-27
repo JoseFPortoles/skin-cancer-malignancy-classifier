@@ -1,5 +1,5 @@
 from models.skin_cancer_classifier import SkinCancerClassifier
-from loops import train_loop
+from loops.train_loop import train_loop
 import argparse
 
 parser = argparse.ArgumentParser(prog='train.py', description='Train SCC with ISIC2024 data')

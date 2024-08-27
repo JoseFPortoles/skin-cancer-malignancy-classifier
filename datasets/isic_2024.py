@@ -49,9 +49,9 @@ class ISIC2024Dataset(Dataset):
         img = extract_image(self.hdf5_file[self.hdf5_keys[index]][()])
         if self.transform:
             aug = self.transform(image=img)
-            img = aug.to(torch.float32)
+            img = aug['image'].to(torch.float32)
         metadata = get_metadata_row(self.annot_df, self.hdf5_keys[index])
-        grading = torch.Tensor(metadata['target'])
+        grading = torch.tensor(metadata['target'])
         grading = F.one_hot(grading, num_classes=2)
         return img, grading
         
