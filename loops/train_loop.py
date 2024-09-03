@@ -13,7 +13,8 @@ from tqdm import tqdm
 import datetime
 from typing import Union
 
-def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True):
+def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True):
+    
     timestamp = datetime.datetime.now()
     lr_start = lr
 
@@ -46,7 +47,7 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
             print("Specified weights path does not exist, model was xavier initialised")
     
 
-    train_dataset = ISIC2024Dataset(data_root, transform=transform_isic_2024(input_size), mode='train', writer=writer)
+    train_dataset = ISIC2024Dataset(seed=seed, root_folder=data_root, transform=transform_isic_2024(input_size), split_ratio=(0.8,0.1,0.1), mode='train', writer=writer)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
     criterion = nn.BCELoss().to(device)
@@ -56,6 +57,8 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
         last_lr = optimizer.param_groups[0]['lr']
         model.train()  
         iter_epoch = len(train_loader)
+        val_every_iters = iter_epoch//10
+        
         for idx, (images, gradings) in enumerate(tqdm(train_loader)):
             iter = idx +  iter_epoch * epoch
             images = images.to(device)
