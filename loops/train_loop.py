@@ -1,6 +1,6 @@
 from models.skin_cancer_classifier import SkinCancerClassifier
 from models.helpers import init_weights
-from datasets.isic_2024 import ISIC2024Dataset
+from datasets.isic_2024 import ISIC2024Dataset, ISIC2024Split
 from transforms.transforms import transform_isic_2024
 import torch
 from torch.optim import Adam
@@ -12,12 +12,15 @@ import os
 from tqdm import tqdm
 import datetime
 from typing import Union
+from pathlib import Path
+from typing import Tuple
 
-def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True):
+def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True, split_dataset: bool=True, split_folder: str=None, split_ratio: Tuple=(0.8, 0.1, 0.1), num_val_points: int = 10):
+
     timestamp = datetime.datetime.now()
-    lr_start = lr
 
     writer = SummaryWriter()
+    writer.add_text("Start timestamp", f"Start timestamp: {timestamp}")
 
     if os.path.exists(output_path) is False:
         os.makedirs(output_path, exist_ok=True)
@@ -28,7 +31,7 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
     model = SkinCancerClassifier(unet_weights=unet_weights).to(device)
 
     optimizer = Adam(model.parameters(), lr=lr, weight_decay=wd)
-    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=lr_scheduler_factor, patience=lr_scheduler_patience, verbose=False)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=lr_scheduler_factor, patience=lr_scheduler_patience, cooldown=0, verbose=True)
     
     epoch_0 = 0
 
@@ -44,18 +47,31 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
         else:
             model.apply(init_weights)
             print("Specified weights path does not exist, model was xavier initialised")
+
+    split_settings = ISIC2024Split(seed, data_root, split_ratio=split_ratio, writer=writer)
+
+    Path(split_folder).mkdir(parents=True, exist_ok=True)
+    if split_dataset:
+        split_settings.split()
+        split_settings.save(split_folder)
+    else:
+        split_settings.load(split_folder)    
     
-
-    train_dataset = ISIC2024Dataset(data_root, transform=transform_isic_2024(input_size), mode='train', writer=writer)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
-
     criterion = nn.BCELoss().to(device)
 
+    train_dataset = ISIC2024Dataset(split=split_settings, transform=transform_isic_2024(input_size), mode='train', writer=writer)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
+    val_dataset = ISIC2024Dataset(split=split_settings, transform=transform_isic_2024(input_size), mode='val', writer=writer)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
+
+    iter_epoch = len(train_loader)
+    val_every_iters = iter_epoch // num_val_points
+    
     for epoch in range(epoch_0, num_epochs):
         print(f'Epoch {epoch}/{num_epochs}')
-        last_lr = optimizer.param_groups[0]['lr']
-        model.train()  
-        iter_epoch = len(train_loader)
+        last_lr = optimizer.param_groups[0]['lr']  
+        model.train()
+
         for idx, (images, gradings) in enumerate(tqdm(train_loader)):
             iter = idx +  iter_epoch * epoch
             images = images.to(device)
@@ -67,6 +83,17 @@ def train_loop(num_epochs: int, batch_size: int, lr: float, wd: float, input_siz
             writer.add_scalar("lr (iter)", last_lr, iter)
             loss.backward()
             optimizer.step()
+            if (iter + 1) % val_every_iters == 0:
+                model.eval()
+                val_loss = 0
+                for val_idx, (images, gradings) in enumerate(val_loader):
+                    images = images.to(device)
+                    gradings = gradings.to(device)
+                    outputs = model(images)
+                    val_loss += criterion(outputs, gradings.to(torch.float32))
+                val_loss = val_loss / (val_idx + 1)
+                writer.add_scalar("val. loss (iter)", val_loss, iter)
+                model.train()
+                scheduler.step(val_loss)
         writer.add_scalar("train. loss (epoch)", loss, epoch)
-
     writer.flush()

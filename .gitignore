@@ -166,3 +166,6 @@ isic_2024_data/
 .vscode/launch.json
 weights/
 runs/
+output/
+split/
+dataset-metadata.json
