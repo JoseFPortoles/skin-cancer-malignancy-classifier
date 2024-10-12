@@ -84,17 +84,19 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
             loss.backward()
             optimizer.step()
             if (iter + 1) % val_every_iters == 0:
-                print(f"Evaluation at iter {iter}")
+                print(f"Evaluation at iter {iter} in progress...")
                 model.eval()
                 val_loss = 0
                 with torch.no_grad():
-                    for val_idx, (images, gradings) in enumerate(tqdm(val_loader)):
+                    for val_idx, (images, gradings) in enumerate(val_loader):
                         images = images.to(device)
                         gradings = gradings.to(device)
                         outputs = model(images)
                         val_loss += criterion(outputs, gradings.to(torch.float32))
                 val_loss = val_loss / (val_idx + 1)
                 writer.add_scalar("val. loss (iter)", val_loss, iter)
+                print(f"val. loss (iter={iter}) = {val_loss}")
+                print(f"LR = {last_lr}")
                 scheduler.step(val_loss)
                 model.train()
         writer.add_scalar("train. loss (epoch)", loss, epoch)
