@@ -2,6 +2,7 @@ from models.skin_cancer_classifier import SkinCancerClassifier
 from models.helpers import init_weights
 from datasets.isic_2024 import ISIC2024Dataset, ISIC2024Split
 from transforms.transforms import transform_isic_2024
+from losses.losses import FocalLoss
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -15,7 +16,7 @@ from typing import Union
 from pathlib import Path
 from typing import Tuple
 
-def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True, split_dataset: bool=True, split_folder: str=None, split_ratio: Tuple=(0.8, 0.1, 0.1), num_val_points: int = 10):
+def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float, input_size: int, unet_weights_path: str, scc_weights_path: Union[None,str], data_root: str, output_path: str, lr_scheduler_factor: float, lr_scheduler_patience: int, num_workers: int, pin_memory: bool=True, split_dataset: bool=True, split_folder: str=None, split_ratio: Tuple=(0.8, 0.1, 0.1), num_val_points: int=10, focal_loss_alpha: float=1, focal_loss_gamma: float=2):
 
     timestamp = datetime.datetime.now()
 
@@ -57,7 +58,7 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
     else:
         split_settings.load(split_folder)    
     
-    criterion = nn.BCELoss().to(device)
+    criterion = FocalLoss(focal_loss_alpha, focal_loss_gamma, reduction='mean').to(device)
 
     train_dataset = ISIC2024Dataset(split=split_settings, transform=transform_isic_2024(input_size), mode='train', writer=writer)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
@@ -97,6 +98,16 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                 writer.add_scalar("val. loss (iter)", val_loss, iter)
                 print(f"val. loss (iter={iter}) = {val_loss}")
                 print(f"LR = {last_lr}")
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    torch.save({
+                                'epoch': epoch,
+                                'model_state_dict': model.state_dict(),
+                                'optimizer_state_dict': optimizer.state_dict(),
+                                'scheduler_state_dict': scheduler.state_dict(),
+                                'loss': loss,
+                                'val_loss': val_loss
+                                }, os.path.join(output_path, f'best-scc-model_{timestamp}.pth'))
                 scheduler.step(val_loss)
                 model.train()
         writer.add_scalar("train. loss (epoch)", loss, epoch)

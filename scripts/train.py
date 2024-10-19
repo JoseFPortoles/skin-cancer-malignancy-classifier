@@ -23,6 +23,8 @@ parser.add_argument('--split_dataset', action='store_true')
 parser.add_argument('--split_folder', type=str, help="Folder containing the respective .csv files with the split sets metadata")
 parser.add_argument('--split_ratio', type=str, help="Split ratio for (train, validation, test) sets")
 parser.add_argument('--num_val_points', type=int, help='Approximate number of validation points across training')
+parser.add_argument('--focal_loss_alpha', type=float, help='Focal loss alpha')
+parser.add_argument('--focal_loss_gamma', type=float, help='Focal loss gamma')
 
 args = parser.parse_args()
 
@@ -35,5 +37,5 @@ else:
 if __name__ == '__main__':
     seed_all(args.seed)
     model = SkinCancerClassifier()
-    train_loop(args.seed, args.num_epochs, args.batch_size, args.lr, args.wd, args.input_size, args.unet_weights_path, args.scc_weights_path, args.data_root, args.output_path, args.lr_scheduler_factor, args.lr_scheduler_patience, args.num_workers, args.pin_memory, args.split_dataset, args.split_folder, split_ratio)
+    train_loop(args.seed, args.num_epochs, args.batch_size, args.lr, args.wd, args.input_size, args.unet_weights_path, args.scc_weights_path, args.data_root, args.output_path, args.lr_scheduler_factor, args.lr_scheduler_patience, args.num_workers, args.pin_memory, args.split_dataset, args.split_folder, split_ratio, args.num_val_points, args.focal_loss_alpha, args.focal_loss_gamma)
     
