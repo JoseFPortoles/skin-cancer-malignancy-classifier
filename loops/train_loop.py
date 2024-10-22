@@ -3,6 +3,7 @@ from models.helpers import init_weights
 from datasets.isic_2024 import ISIC2024Dataset, ISIC2024Split
 from transforms.transforms import transform_isic_2024
 from losses.losses import FocalLoss
+from metrics.metrics import EvalMetrics
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -88,14 +89,24 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                 print(f"Evaluation at iter {iter} in progress...")
                 model.eval()
                 val_loss = 0
+                best_val_loss = torch.inf
+                pAUC_80tpr = 0
+                test_gradings = torch.empty((0,2)).to(device)
+                test_outputs = torch.empty((0,2)).to(device)
                 with torch.no_grad():
-                    for val_idx, (images, gradings) in enumerate(val_loader):
+                    for val_idx, (images, gradings) in tqdm(enumerate(val_loader)):
                         images = images.to(device)
                         gradings = gradings.to(device)
-                        outputs = model(images)
+                        test_gradings = torch.cat((test_gradings, gradings.to(device)), dim = 0)
+                        test_outputs = torch.cat((test_outputs, model(images)), dim = 0)
                         val_loss += criterion(outputs, gradings.to(torch.float32))
+                eval_metrics = EvalMetrics(gt_target = test_gradings, f1_threshold=0.5, writer=writer)
+                pr_metrics = eval_metrics.pr_metrics(test_outputs)
+                pAUC_80tpr = pr_metrics['pAUC_80tpr']
                 val_loss = val_loss / (val_idx + 1)
+                writer.add_scalar("pAUC_80tpr (iter)", pAUC_80tpr, iter)
                 writer.add_scalar("val. loss (iter)", val_loss, iter)
+                print(f"pAUC_80tpr (iter={iter}) = {pAUC_80tpr}")
                 print(f"val. loss (iter={iter}) = {val_loss}")
                 print(f"LR = {last_lr}")
                 if val_loss < best_val_loss:
@@ -106,7 +117,8 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                                 'optimizer_state_dict': optimizer.state_dict(),
                                 'scheduler_state_dict': scheduler.state_dict(),
                                 'loss': loss,
-                                'val_loss': val_loss
+                                'val_loss': val_loss,
+                                'pAUC_80tpr': pAUC_80tpr
                                 }, os.path.join(output_path, f'best-scc-model_{timestamp}.pth'))
                 scheduler.step(val_loss)
                 model.train()
