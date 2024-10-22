@@ -85,7 +85,7 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
             writer.add_scalar("lr (iter)", last_lr, iter)
             loss.backward()
             optimizer.step()
-            if (iter + 1) % val_every_iters == 0:
+            if (iter + 1) // val_every_iters == 0:
                 print(f"Evaluation at iter {iter} in progress...")
                 model.eval()
                 val_loss = 0
@@ -96,9 +96,10 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                 with torch.no_grad():
                     for val_idx, (images, gradings) in tqdm(enumerate(val_loader)):
                         images = images.to(device)
+                        outputs = model(images)
                         gradings = gradings.to(device)
                         test_gradings = torch.cat((test_gradings, gradings.to(device)), dim = 0)
-                        test_outputs = torch.cat((test_outputs, model(images)), dim = 0)
+                        test_outputs = torch.cat((test_outputs, outputs), dim = 0)
                         val_loss += criterion(outputs, gradings.to(torch.float32))
                 eval_metrics = EvalMetrics(gt_target = test_gradings, f1_threshold=0.5, writer=writer)
                 pr_metrics = eval_metrics.pr_metrics(test_outputs)
