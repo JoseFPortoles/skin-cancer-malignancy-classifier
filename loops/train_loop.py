@@ -85,7 +85,7 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
             writer.add_scalar("lr (iter)", last_lr, iter)
             loss.backward()
             optimizer.step()
-            if (iter + 1) // val_every_iters == 0:
+            if (iter + 1) % val_every_iters == 0:
                 print(f"Evaluation at iter {iter} in progress...")
                 model.eval()
                 val_loss = 0
