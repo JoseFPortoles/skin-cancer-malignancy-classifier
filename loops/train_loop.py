@@ -98,7 +98,7 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                         images = images.to(device)
                         outputs = model(images)
                         gradings = gradings.to(device)
-                        test_gradings = torch.cat((test_gradings, gradings.to(device)), dim = 0)
+                        test_gradings = torch.cat((test_gradings, gradings), dim = 0)
                         test_outputs = torch.cat((test_outputs, outputs), dim = 0)
                         val_loss += criterion(outputs, gradings.to(torch.float32))
                 eval_metrics = EvalMetrics(gt_target = test_gradings, f1_threshold=0.5, writer=writer)
