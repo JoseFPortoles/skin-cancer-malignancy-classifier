@@ -101,6 +101,8 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
                         test_gradings = torch.cat((test_gradings, gradings), dim = 0)
                         test_outputs = torch.cat((test_outputs, outputs), dim = 0)
                         val_loss += criterion(outputs, gradings.to(torch.float32))
+                test_gradings = test_gradings.cpu()
+                test_outputs = test_outputs.cpu()
                 eval_metrics = EvalMetrics(gt_target = test_gradings, f1_threshold=0.5, writer=writer)
                 pr_metrics = eval_metrics.pr_metrics(test_outputs)
                 pAUC_80tpr = pr_metrics['pAUC_80tpr']
