@@ -53,7 +53,7 @@ class ISIC2024Split:
     def load(self, in_folder: str):
         for key in ['train', 'val', 'test']:
             filepath = Path(in_folder)/f'{key}_split.csv'
-            self.annot_df[key] = pd.read_csv(filepath)
+            self.annot_df[key] = pd.read_csv(filepath, index_col=0)
 
 class ISIC2024Dataset(Dataset):
     def __init__(self, split: ISIC2024Split, transform=None, mode:str = 'train', writer: SummaryWriter=None):
