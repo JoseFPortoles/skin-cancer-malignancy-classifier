@@ -42,6 +42,9 @@ def train_loop(seed: int, num_epochs: int, batch_size: int, lr: float, wd: float
             try:
                 checkpoint = torch.load(scc_weights_path, map_location=device)
                 model.load_state_dict(checkpoint['model_state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                epoch_0 = checkpoint['epoch']
                 print(f"Loaded checkpoint at {scc_weights_path}")
             except Exception as e:
                 model.apply(init_weights)
