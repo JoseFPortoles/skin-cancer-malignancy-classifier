@@ -36,7 +36,7 @@ class EvalMetrics:
         
         fpr, tpr, roc_thresholds = roc_curve(self.gt_malignant, prob_malignant)
         fpr_partial80 = fpr[tpr >= 0.80]
-        tpr_partial80 = tpr[tpr >= 0.80]
+        tpr_partial80 = tpr[tpr >= 0.80] - 0.80
         # pAUC above 80% TPR
         pauc_80tpr = auc(fpr_partial80, tpr_partial80)
 
