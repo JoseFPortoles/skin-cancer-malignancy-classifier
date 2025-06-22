@@ -1,7 +1,7 @@
 import torch
 from sklearn.metrics import precision_recall_curve, roc_curve, auc, f1_score
 from torch.utils.tensorboard import SummaryWriter
-import numpy as np
+import matplotlib.pyplot as plt
 
 
 class EvalMetrics:
@@ -39,6 +39,8 @@ class EvalMetrics:
         tpr_partial80 = tpr[tpr >= 0.80] - 0.80
         # pAUC above 80% TPR
         pauc_80tpr = auc(fpr_partial80, tpr_partial80)
+        # Add roc curve to class fields
+        self.metrics['roc_curve'] = (fpr, tpr, roc_thresholds)
 
         return {'f1_score': f1, 
                 'precision': precision, 
@@ -47,3 +49,29 @@ class EvalMetrics:
                 'roc_thresholds': roc_thresholds,
                 'AUC': auc_pr,
                 'pAUC_80tpr': pauc_80tpr}
+    
+    def display_roc_curve_in_tensorboard(self):
+        """Displays the ROC curve in Tensorboard
+        """
+        if 'roc_curve' not in self.metrics:
+            raise ValueError("ROC curve data not available. Run pr_metrics first.")
+        
+        fpr, tpr, roc_thresholds = self.metrics['roc_curve']
+        self.writer.add_pr_curve('ROC Curve', self.gt_malignant, fpr, tpr, roc_thresholds)
+
+    def display_pr_curve_in_pyplot(self):
+        """Displays the Precision-Recall curve using matplotlib
+        """
+        if 'roc_curve' not in self.metrics:
+            raise ValueError("ROC curve data not available. Run pr_metrics first.")
+        
+        fpr, tpr, roc_thresholds = self.metrics['roc_curve']
+        
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, label='ROC Curve')
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curve')
+        plt.legend()
+        plt.grid()
+        plt.show()
